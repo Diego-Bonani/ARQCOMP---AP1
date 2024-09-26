@@ -154,9 +154,9 @@ void setup()
   pinMode(CHAVE_3, INPUT);
   pinMode(CHAVE_4, INPUT);
   pinMode(BUTTON, INPUT);
-  pinMode(RGB_RED, OUTPUT);
-  pinMode(RGB_BLUE, OUTPUT);
-  pinMode(RGB_GREEN, OUTPUT);
+  pinMode(RGB_RED, INPUT);
+  pinMode(RGB_BLUE, INPUT);
+  pinMode(RGB_GREEN, INPUT);
   pinMode(SELETOR, INPUT);
   pinMode(ECHO, INPUT);
   pinMode(TRIGGER,OUTPUT);
