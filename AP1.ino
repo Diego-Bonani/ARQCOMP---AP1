@@ -1,39 +1,48 @@
 // C++ code
 //
-#include "DHT.h"
-#define DHTTYPE DHT11
+#include "dht.h"
 
-const int LED_A = 9;
-const int LED_B = 8;
-const int BUZZ = 1;
-const int CHAVE_1 = 2;
-const int CHAVE_2 = 3;
-const int CHAVE_3 = 4;
-const int CHAVE_4 = 5;
-const int RGB_RED = "A5";
-const int RGB_BLUE = "A6";
-const int RGB_GREEN = "A7";
-const int BUTTON = 13;
-const int ECHO = 6;
-const int TRIGGER = 7;
-const int SELETOR = 0;
-const int DHTPIN = "A0"; //entrada analog
+#define VEL_SOM 340
+const int LED_Y = 9;
+const int LED_R = 10;
+const int LED_B = 11;
+const int BUZZER = 12;
+const int CHAVE_1 = 22;
+const int CHAVE_2 = 23;
+const int CHAVE_3 = 24;
+const int CHAVE_4 = 25;
+const int RGB_RED = 4;
+const int RGB_5V = 5;
+const int RGB_BLUE = 7;
+const int RGB_GREEN = 6;
+const int BUTTON = 2;
+const int ECHO = 28;
+const int TRIG = 29;
+const int SELETOR = 27;
+const int pinoDHT11 = A0; //entrada analog
+dht DHT;
 
-DHT dht(DHTPIN, DHTTYPE);
-
-int converteBinarioDecimal(int a, int b, int c, int d)
+int converteBinarioDecimal(int a, int b, int c, int d)  //chave 1 = a, chave 2 = b, chave 3 = c, chave 4 = d 
 {
-  return a * 2 + b * 4 + c * 8 + d * 16;
+  return a * 1 + b * 2 + c * 4 + d * 8;
 }
 
 void ligarLed(char led)
 {
-  if(led == "A")
+  Serial.println(led);
+  if(led == 'A')
   {
-    digitalWrite(LED_A, HIGH);
+    Serial.println("LED");
+    digitalWrite(LED_Y, HIGH);
   }
-  else if(led == "B")
+  else if(led == 'B')
   {
+    Serial.println("LED");
+    digitalWrite(LED_R, HIGH);
+  }
+  else if(led == 'C')
+  {
+    Serial.println("LED");
     digitalWrite(LED_B, HIGH);
   }
   return;
@@ -41,11 +50,15 @@ void ligarLed(char led)
 
 void desligarLed(char led)
 {
-  if(led == "A")
+  if(led == 'A')
   {
-    digitalWrite(LED_A, LOW);
+    digitalWrite(LED_Y, LOW);
   }
-  else if(led == "B")
+  else if(led == 'B')
+  {
+    digitalWrite(LED_R, LOW);
+  }
+  else if(led == 'C')
   {
     digitalWrite(LED_B, LOW);
   }
@@ -54,7 +67,7 @@ void desligarLed(char led)
 
 void ligarBuzzer()
 {
-  digitalWrite(BUZZER, HIGH);
+  analogWrite(BUZZER, 10);
   return;
 }
 
@@ -66,23 +79,38 @@ void desligarBuzzer()
 
 void lerTemperatura()
 {
-  float t = dht.readTemperature();
+  DHT.read11(pinoDHT11); //Lê os valores do sensor
+  Serial.print("Humidade: "); //Imprime Umidade na porta serial
+  Serial.print(DHT.humidity); //Imprime o Valor de umidade lido pelo sensor
+  Serial.print("%"); // Imprime simbolo
+  Serial.print(" Temperatura: "); //Imprime Temperatura na porta serial
+  Serial.print(DHT.temperature, 0); //Imprime o valor medido e remove a parte decimal
+  Serial.println("C"); //Imprime unidade de medica
 
-  if(isnan(t))
-  {
-    Serial.println(F("Falha na leitura de temperatura"));
-    return;
-  }
+  return;
+}
 
-  Serial.print(F("Temperatura: "));
-  Serial.print(t);
-  Serial.print(F("°C"));
+float disparaTrig(){  // A função diapara um sinal de trigger no pino pinTrig com largura de 10 microssegundos
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  return pulseIn(ECHO, HIGH);  // determina o tempo em microssegundos
+}
 
+void lerDistancia()
+{
+  float tempo, distancia;
+  tempo = disparaTrig(); // dispara sinal de Trig E retorna a duracao do pulso (em microssegundos) que indica a distancia
+  Serial.print(tempo);
+  distancia = tempo * 0.000001 * VEL_SOM * 100/2; // determina a distancia em cm     
+  Serial.println("Distancia em centimetros: "); // apresenta o resultado
+  Serial.println(distancia,DEC); 
   return;
 }
 
 void definirCorRGB(int r, int g, int b)
 {
+  digitalWrite(RGB_5V, HIGH);
   analogWrite(RGB_RED, r);
   analogWrite(RGB_GREEN, g);
   analogWrite(RGB_BLUE, b);
@@ -91,12 +119,12 @@ void definirCorRGB(int r, int g, int b)
 
 void inicioModoProgramacaoSerial()
 {
-
+  return;
 }
 
 void inicioModoProgramacaoBinario()
 {
-  int a, b, c, d;
+  int a, b, c, d, opcode;
   a = digitalRead(CHAVE_1);
   b = digitalRead(CHAVE_2);
   c = digitalRead(CHAVE_3);
@@ -105,64 +133,84 @@ void inicioModoProgramacaoBinario()
 
   while(digitalRead(BUTTON))
   {
-    delay(1000);
+    
   }
+  Serial.println("Botao apertado");
 
   switch(opcode)
   {
     case 0:
-      ligarLed("A");
+      ligarLed('A');
+      break;
     case 1:
-      desligarLed("A");
+      desligarLed('A');
+      break;
     case 2:
-      ligarLed("B");
+      ligarLed('B');
+      break;
     case 3:
-      desligarLed("B");
+      desligarLed('B');
+      break;
     case 4:
-      ligarBuzzer();
+      ligarLed('C');
+      break;
     case 5:
-      desligarBuzzer();
+      desligarLed('C');
+      break;
     case 6:
-      lerTemperatura();
+      ligarBuzzer();
+      break;
     case 7:
-      lerDistancia();
+      desligarBuzzer();
+      break;
     case 8:
-      definirCorRGB(255, 0, 0); //cor vermelha
+      lerTemperatura();
+      break;
     case 9:
-      definirCorRGB(0, 255, 0); //cor verde
+      lerDistancia();
+      break;
     case 10:
-      definirCorRGB(0, 0, 255); //cor azul
+      definirCorRGB(255, 0, 255); //cor verde
+      break;
     case 11:
-      definirCorRGB(0, 255, 255); //cor ciano
+      definirCorRGB(255, 0, 0); //cor ciano
+      break;
     case 12:
-      definirCorRGB(255, 255, 0); //cor amarela
+      definirCorRGB(0, 255, 0); //cor magenta
+      break;
     case 13:
-      definirCorRGB(255, 0, 255); //cor magenta
+      definirCorRGB(0, 0, 0); //cor branca
+      break;
     case 14:
-      definirCorRGB(255, 255, 255); //cor branca
+      definirCorRGB(255, 255, 255); //desligar o led
+      break;
+    case 15:
+
+      break;
   }
   return;
 }
 
 void setup()
 {
-  pinMode(LED_1, OUTPUT);
-  pinMode(LED_2, OUTPUT);
-  pinMode(BUZZ, OUTPUT);
+  pinMode(LED_Y, OUTPUT);
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_B, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
   pinMode(CHAVE_1, INPUT);
   pinMode(CHAVE_2, INPUT);
   pinMode(CHAVE_3, INPUT);
   pinMode(CHAVE_4, INPUT);
   pinMode(BUTTON, INPUT);
-  pinMode(RGB_RED, INPUT);
-  pinMode(RGB_BLUE, INPUT);
-  pinMode(RGB_GREEN, INPUT);
+  pinMode(RGB_RED, OUTPUT);
+  pinMode(RGB_5V, OUTPUT);
+  pinMode(RGB_BLUE, OUTPUT);
+  pinMode(RGB_GREEN, OUTPUT);
   pinMode(SELETOR, INPUT);
   pinMode(ECHO, INPUT);
-  pinMode(TRIGGER,OUTPUT);
-  digitalWrite(TRIGGER,LOW);
+  pinMode(TRIG,OUTPUT);
+  digitalWrite(TRIG,LOW);
   Serial.begin(9600);
-  dht.begin();
 }
 
 void loop()
@@ -171,7 +219,7 @@ void loop()
     inicioModoProgramacaoBinario();
   }
   else{
-    inicioModoProgramacaoSerial():
+    inicioModoProgramacaoSerial();
   }
 
 }
