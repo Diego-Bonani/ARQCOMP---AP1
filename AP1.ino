@@ -1,6 +1,5 @@
 // C++ code
-//
-#include "dht.h"
+// LM35
 
 #define VEL_SOM 340
 const int LED_Y = 9;
@@ -11,16 +10,16 @@ const int CHAVE_1 = 22;
 const int CHAVE_2 = 23;
 const int CHAVE_3 = 24;
 const int CHAVE_4 = 25;
-const int RGB_RED = 4;
-const int RGB_5V = 5;
-const int RGB_BLUE = 7;
-const int RGB_GREEN = 6;
+const int RGB_RED = 31;
+const int RGB_5V = 30;
+const int RGB_BLUE = 32;
+const int RGB_GREEN = 33;
 const int BUTTON = 2;
-const int ECHO = 28;
-const int TRIG = 29;
+const int ECHO = 6;
+const int TRIG = 7;
 const int SELETOR = 27;
-const int pinoDHT11 = A0; //entrada analog
-dht DHT;
+const int LM35 = A0; //entrada analog
+const float BASE_CELSIUS = 0.4887585532746823069403714565;
 
 int converteBinarioDecimal(int a, int b, int c, int d)  //chave 1 = a, chave 2 = b, chave 3 = c, chave 4 = d 
 {
@@ -29,20 +28,16 @@ int converteBinarioDecimal(int a, int b, int c, int d)  //chave 1 = a, chave 2 =
 
 void ligarLed(char led)
 {
-  Serial.println(led);
   if(led == 'A')
   {
-    Serial.println("LED");
     digitalWrite(LED_Y, HIGH);
   }
   else if(led == 'B')
   {
-    Serial.println("LED");
     digitalWrite(LED_R, HIGH);
   }
   else if(led == 'C')
   {
-    Serial.println("LED");
     digitalWrite(LED_B, HIGH);
   }
   return;
@@ -79,14 +74,11 @@ void desligarBuzzer()
 
 void lerTemperatura()
 {
-  DHT.read11(pinoDHT11); //Lê os valores do sensor
-  Serial.print("Humidade: "); //Imprime Umidade na porta serial
-  Serial.print(DHT.humidity); //Imprime o Valor de umidade lido pelo sensor
-  Serial.print("%"); // Imprime simbolo
-  Serial.print(" Temperatura: "); //Imprime Temperatura na porta serial
-  Serial.print(DHT.temperature, 0); //Imprime o valor medido e remove a parte decimal
-  Serial.println("C"); //Imprime unidade de medica
-
+  float temperatura;
+  temperatura = analogRead(LM35) * BASE_CELSIUS;
+  Serial.print("Temperatura: ");
+  Serial.print(temperatura);
+  Serial.println(" °C");
   return;
 }
 
@@ -99,13 +91,19 @@ float disparaTrig(){  // A função diapara um sinal de trigger no pino pinTrig 
 
 void lerDistancia()
 {
-  float tempo, distancia;
-  tempo = disparaTrig(); // dispara sinal de Trig E retorna a duracao do pulso (em microssegundos) que indica a distancia
-  Serial.print(tempo);
-  distancia = tempo * 0.000001 * VEL_SOM * 100/2; // determina a distancia em cm     
-  Serial.println("Distancia em centimetros: "); // apresenta o resultado
-  Serial.println(distancia,DEC); 
-  return;
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+
+  long duracao = pulseIn(ECHO, HIGH);
+  long distancia = duracao * 0.034 / 2; // converte para cm
+  Serial.print(F("Distância: "));
+  Serial.print(distancia);
+  Serial.println(F(" cm"));
+
+  return distancia;
 }
 
 void definirCorRGB(int r, int g, int b)
@@ -119,7 +117,95 @@ void definirCorRGB(int r, int g, int b)
 
 void inicioModoProgramacaoSerial()
 {
-  return;
+  String input;
+
+  while(Serial.available() == 0){
+
+  }
+
+  input = Serial.readString();
+  input.trim();
+
+  if(input == "INICIO_PROG")
+  {
+    Serial.println("Modo Programação ativado.");
+    while(true)
+    {
+      while(Serial.available() == 0){
+
+      }
+
+      input = Serial.readString();
+      input.trim();
+
+      if(input == "LED_ON A")
+      {
+        ligarLed('A');
+      }
+      else if(input == "LED_OFF A")
+      {
+        desligarLed('A');
+      }
+      else if(input == "LED_ON B")
+      {
+        ligarLed('B');
+      }
+      else if(input == "LED_OFF B")
+      {
+        desligarLed('B');
+      }
+      else if(input == "LED_ON C")
+      {
+        ligarLed('C');
+      }
+      else if(input == "LED_OFF C")
+      {
+        desligarLed('C');
+      }
+      else if(input == "BUZZ_ON")
+      {
+        ligarBuzzer();
+      }
+      else if(input == "BUZZ_OFF")
+      {
+        desligarBuzzer();
+      }
+      else if(input == "TEMP_READ")
+      {
+        lerTemperatura();
+      }
+      else if(input == "DIST_CHECK")
+      {
+        lerDistancia();
+      }
+      else if(input == "RGB_SET_COLOR A RED")
+      {
+        definirCorRGB(0, 255, 255);
+      }
+      else if(input == "RGB_SET_COLOR A GREEN")
+      {
+        definirCorRGB(255, 0, 255);
+      }
+      else if(input == "RGB_SET_COLOR A BLUE")
+      {
+        definirCorRGB(255, 255, 0);
+      }
+      else if(input == "FIM_PROG")
+      {
+        return;
+      }
+      else
+      {
+        Serial.println("Comando não reconhecido. Tente novamente!");
+      }
+    }
+  }
+  else
+  {
+    Serial.println("Modo Programação desativado. Tente o comando INICIO_PROG!");
+  }
+
+  
 }
 
 void inicioModoProgramacaoBinario()
